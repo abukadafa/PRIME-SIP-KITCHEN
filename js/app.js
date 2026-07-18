@@ -11,6 +11,70 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* ---------- Load YouTube Iframe Player API ---------- */
+const tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+const firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+let bgPlayer;
+window.onYouTubeIframeAPIReady = function() {
+  // 1. Background Video Hero loop
+  const bgPlaceholder = document.getElementById('youtube-bg-player');
+  if (bgPlaceholder) {
+    bgPlayer = new YT.Player('youtube-bg-player', {
+      videoId: 'u-nrdkufWm0',
+      playerVars: {
+        autoplay: 1,
+        mute: 1,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        modestbranding: 1,
+        rel: 0,
+        showinfo: 0,
+        loop: 1,
+        playlist: 'u-nrdkufWm0', // Required for loop in YT player
+        playsinline: 1
+      },
+      events: {
+        onReady: function(e) {
+          e.target.playVideo();
+        },
+        onStateChange: function(e) {
+          // Manual fallback loop safety
+          if (e.data === YT.PlayerState.ENDED) {
+            e.target.playVideo();
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Playlist Audio Player (Hidden in Controller)
+  const audioPlaceholder = document.getElementById('youtube-audio-player');
+  if (audioPlaceholder) {
+    MediaEngine.ytAudioPlayer = new YT.Player('youtube-audio-player', {
+      height: '0',
+      width: '0',
+      videoId: 'Xiop2yTFB0s',
+      playerVars: {
+        listType: 'playlist',
+        list: 'PLbky1Uo8tP8CSLdGbdwFezMjDuukfUh7A',
+        autoplay: 0,
+        controls: 0,
+        disablekb: 1,
+        loop: 1
+      },
+      events: {
+        onReady: function() {
+          console.log('YouTube Audio Player (Playlist) loaded and ready.');
+        }
+      }
+    });
+  }
+};
+
 /* ---------- Menu data (single source of truth) ---------- */
 const MENU = [
   // Prime Combos & Platters
@@ -85,7 +149,6 @@ const Database = {
   },
   writeOrders(orders) {
     localStorage.setItem(this.ORDERS_KEY, JSON.stringify(orders));
-    // Dispatch custom event to sync multi-tabs instantly
     window.dispatchEvent(new Event('psk_db_update'));
   },
   addOrder(order) {
@@ -164,15 +227,15 @@ const Cart = {
 const MediaEngine = {
   audioCtx: null,
   masterVolume: null,
-  synthInterval: null,
   isPlaying: false,
+  ytAudioPlayer: null, // Initialized by YouTube API
 
   init() {
     if (this.audioCtx) return;
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     this.audioCtx = new AudioContext();
     this.masterVolume = this.audioCtx.createGain();
-    this.masterVolume.gain.value = 0.15; // Soft ambient volume
+    this.masterVolume.gain.value = 0.15;
     this.masterVolume.connect(this.audioCtx.destination);
   },
 
@@ -218,14 +281,14 @@ const MediaEngine = {
     
     const now = this.audioCtx.currentTime;
     
-    // Create a rich digital service desk bell chime (high-frequency square & sine)
+    // Create a rich digital service desk bell chime
     const osc = this.audioCtx.createOscillator();
     const gain = this.audioCtx.createGain();
     
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(587.33, now); // D5
-    osc.frequency.setValueAtTime(880.00, now + 0.1); // A5
-    osc.frequency.setValueAtTime(1174.66, now + 0.2); // D6
+    osc.frequency.setValueAtTime(587.33, now);
+    osc.frequency.setValueAtTime(880.00, now + 0.1);
+    osc.frequency.setValueAtTime(1174.66, now + 0.2);
     
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(0.12, now + 0.05);
@@ -239,61 +302,16 @@ const MediaEngine = {
   },
 
   startAmbientMusic() {
-    this.init();
-    if (this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
-    }
-
     this.isPlaying = true;
-    const chords = [
-      [146.83, 185.00, 220.00, 277.18], // Dmaj7
-      [164.81, 196.00, 246.94, 293.66], // Em7
-      [130.81, 164.81, 196.00, 261.63], // Cmaj7
-      [110.00, 138.59, 164.81, 220.00]  // A7
-    ];
-    let chordIndex = 0;
-
-    const playNextChord = () => {
-      if (!this.isPlaying) return;
-      const now = this.audioCtx.currentTime;
-      const notes = chords[chordIndex];
-
-      notes.forEach((freq) => {
-        const osc = this.audioCtx.createOscillator();
-        const filter = this.audioCtx.createBiquadFilter();
-        const gain = this.audioCtx.createGain();
-
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now);
-
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(450, now);
-        filter.frequency.exponentialRampToValueAtTime(250, now + 4);
-
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.06, now + 1.2);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 5.8);
-
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.masterVolume);
-
-        osc.start(now);
-        osc.stop(now + 6);
-      });
-
-      chordIndex = (chordIndex + 1) % chords.length;
-    };
-
-    playNextChord();
-    this.synthInterval = setInterval(playNextChord, 6000);
+    if (this.ytAudioPlayer && typeof this.ytAudioPlayer.playVideo === 'function') {
+      this.ytAudioPlayer.playVideo();
+    }
   },
 
   stopAmbientMusic() {
     this.isPlaying = false;
-    if (this.synthInterval) {
-      clearInterval(this.synthInterval);
-      this.synthInterval = null;
+    if (this.ytAudioPlayer && typeof this.ytAudioPlayer.pauseVideo === 'function') {
+      this.ytAudioPlayer.pauseVideo();
     }
   },
 
@@ -312,7 +330,6 @@ const MediaEngine = {
 
 /* ---------- Floating Ambient Sound Setup ---------- */
 function initAmbientControl() {
-  // Prevent duplicate controls
   if (document.getElementById('lounge-audio-toggle')) return;
 
   const controller = document.createElement('div');
@@ -328,6 +345,8 @@ function initAmbientControl() {
         <span class="audio-bar"></span>
       </div>
     </div>
+    <!-- Hidden iframe mount target for YouTube Player API -->
+    <div id="youtube-audio-player" style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;"></div>
   `;
   document.body.appendChild(controller);
 
@@ -771,7 +790,7 @@ const DashboardEngine = {
     this.lastCheckedOrderCount = Database.readOrders().length;
     this.render();
 
-    // Poll for changes (or sync on local event)
+    // Poll for changes
     window.addEventListener('psk_db_update', () => this.render());
     
     // Regular 1 second intervals for timers
@@ -974,7 +993,6 @@ const DashboardEngine = {
 
       const timeLeft = targetTime - Date.now();
 
-      // Reset classes
       el.className = "dashboard-timer";
 
       if (timeLeft <= 0) {
@@ -988,20 +1006,18 @@ const DashboardEngine = {
         
         el.textContent = `${displayMins}:${displaySecs}`;
 
-        // Color coding by remaining time urgency
         if (mins < 3) {
-          el.classList.add("urgency-high"); // Less than 3 mins left
+          el.classList.add("urgency-high");
         } else if (mins < 10) {
-          el.classList.add("urgency-medium"); // Less than 10 mins left
+          el.classList.add("urgency-medium");
         } else {
-          el.classList.add("urgency-low"); // Safe
+          el.classList.add("urgency-low");
         }
       }
     });
   }
 };
 
-// Expose DashboardEngine globally so onclick bindings in dynamically rendered elements work
 window.DashboardEngine = DashboardEngine;
 
 /* ---------- Dom Loaded Init ---------- */
