@@ -1,6 +1,15 @@
 /* =========================================================
-   PRIME SIP KITCHEN — Shared Application Logic & Media Engine
+   PRIME SIP KITCHEN — Shared Application Logic & PWA Media Engine
    ========================================================= */
+
+/* ---------- PWA Service Worker Registration ---------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+      .catch(err => console.error('Service Worker registration failed:', err));
+  });
+}
 
 /* ---------- Menu data (single source of truth) ---------- */
 const MENU = [
@@ -65,6 +74,52 @@ const CATEGORY_LABELS = {
 };
 
 const NAIRA = n => "₦" + n.toLocaleString("en-NG");
+
+/* ---------- Shared Database Managers (localStorage) ---------- */
+const Database = {
+  ORDERS_KEY: "psk_orders_v1",
+  BOOKINGS_KEY: "psk_bookings_v1",
+
+  readOrders() {
+    try { return JSON.parse(localStorage.getItem(this.ORDERS_KEY)) || []; } catch(e) { return []; }
+  },
+  writeOrders(orders) {
+    localStorage.setItem(this.ORDERS_KEY, JSON.stringify(orders));
+    // Dispatch custom event to sync multi-tabs instantly
+    window.dispatchEvent(new Event('psk_db_update'));
+  },
+  addOrder(order) {
+    const orders = this.readOrders();
+    orders.push(order);
+    this.writeOrders(orders);
+  },
+  updateOrderStatus(orderId, status, prepMinutes = 0) {
+    const orders = this.readOrders();
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      order.status = status;
+      if (status === 'confirmed' && prepMinutes > 0) {
+        order.confirmedAt = Date.now();
+        order.prepMinutes = prepMinutes;
+        order.targetPickupTime = Date.now() + (prepMinutes * 60 * 1000);
+      }
+      this.writeOrders(orders);
+    }
+  },
+
+  readBookings() {
+    try { return JSON.parse(localStorage.getItem(this.BOOKINGS_KEY)) || []; } catch(e) { return []; }
+  },
+  writeBookings(bookings) {
+    localStorage.setItem(this.BOOKINGS_KEY, JSON.stringify(bookings));
+    window.dispatchEvent(new Event('psk_db_update'));
+  },
+  addBooking(booking) {
+    const bookings = this.readBookings();
+    bookings.push(booking);
+    this.writeBookings(bookings);
+  }
+};
 
 /* ---------- Cart engine (localStorage) ---------- */
 const Cart = {
@@ -135,11 +190,11 @@ const MediaEngine = {
     const gainNode = this.audioCtx.createGain();
     
     osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(880, now); // A5 note
+    osc1.frequency.setValueAtTime(880, now);
     osc1.frequency.exponentialRampToValueAtTime(1760, now + 0.12);
     
     osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(1320, now); // E6 note
+    osc2.frequency.setValueAtTime(1320, now);
     osc2.frequency.exponentialRampToValueAtTime(2640, now + 0.12);
 
     gainNode.gain.setValueAtTime(0.08, now);
@@ -155,7 +210,34 @@ const MediaEngine = {
     osc2.stop(now + 0.4);
   },
 
-  // Generates a soft, warm jazz lounge backing progression dynamically
+  playAlarm() {
+    this.init();
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+    
+    const now = this.audioCtx.currentTime;
+    
+    // Create a rich digital service desk bell chime (high-frequency square & sine)
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(587.33, now); // D5
+    osc.frequency.setValueAtTime(880.00, now + 0.1); // A5
+    osc.frequency.setValueAtTime(1174.66, now + 0.2); // D6
+    
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.12, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+    
+    osc.connect(gain);
+    gain.connect(this.audioCtx.destination);
+    
+    osc.start(now);
+    osc.stop(now + 1.0);
+  },
+
   startAmbientMusic() {
     this.init();
     if (this.audioCtx.state === 'suspended') {
@@ -164,7 +246,7 @@ const MediaEngine = {
 
     this.isPlaying = true;
     const chords = [
-      [146.83, 185.00, 220.00, 277.18], // Dmaj7 (Warm, relaxing)
+      [146.83, 185.00, 220.00, 277.18], // Dmaj7
       [164.81, 196.00, 246.94, 293.66], // Em7
       [130.81, 164.81, 196.00, 261.63], // Cmaj7
       [110.00, 138.59, 164.81, 220.00]  // A7
@@ -181,7 +263,6 @@ const MediaEngine = {
         const filter = this.audioCtx.createBiquadFilter();
         const gain = this.audioCtx.createGain();
 
-        // Low-pass filtered triangle waves sound like soft electric pianos
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, now);
 
@@ -190,9 +271,7 @@ const MediaEngine = {
         filter.frequency.exponentialRampToValueAtTime(250, now + 4);
 
         gain.gain.setValueAtTime(0, now);
-        // Soft attack
         gain.gain.linearRampToValueAtTime(0.06, now + 1.2);
-        // Long decay
         gain.gain.exponentialRampToValueAtTime(0.001, now + 5.8);
 
         osc.connect(filter);
@@ -206,7 +285,6 @@ const MediaEngine = {
       chordIndex = (chordIndex + 1) % chords.length;
     };
 
-    // Play immediately and cycle every 6 seconds
     playNextChord();
     this.synthInterval = setInterval(playNextChord, 6000);
   },
@@ -234,6 +312,9 @@ const MediaEngine = {
 
 /* ---------- Floating Ambient Sound Setup ---------- */
 function initAmbientControl() {
+  // Prevent duplicate controls
+  if (document.getElementById('lounge-audio-toggle')) return;
+
   const controller = document.createElement('div');
   controller.className = 'audio-controller';
   controller.innerHTML = `
@@ -383,6 +464,104 @@ function initMenuPage(){
   });
 }
 
+/* ---------- Customer Order Tracking View logic ---------- */
+let trackerInterval = null;
+
+function renderOrderTracker(orderId) {
+  const layout = document.querySelector("[data-cart-layout]");
+  const empty = document.querySelector("[data-cart-empty]");
+  let trackerPanel = document.querySelector("#active-order-tracker");
+
+  if (empty) empty.style.display = "none";
+  if (layout) layout.style.display = "none";
+
+  if (!trackerPanel) {
+    trackerPanel = document.createElement("div");
+    trackerPanel.id = "active-order-tracker";
+    trackerPanel.className = "order-tracker-panel";
+    const mainSection = document.querySelector("main");
+    if (mainSection) mainSection.appendChild(trackerPanel);
+  }
+
+  function updateTrackerUI() {
+    const orders = Database.readOrders();
+    const order = orders.find(o => o.id === orderId);
+
+    if (!order) {
+      trackerPanel.innerHTML = `<h3 style='text-align:center;'>Order not found</h3>`;
+      clearInterval(trackerInterval);
+      return;
+    }
+
+    const isPending = order.status === 'pending';
+    const isPreparing = order.status === 'confirmed';
+    const isReady = order.status === 'ready';
+    const isCompleted = order.status === 'completed';
+
+    // Calculate time left
+    let timeHtml = "";
+    if (isPending) {
+      timeHtml = `<p>Waiting for Chef's confirmation...</p>`;
+    } else if (isPreparing) {
+      const timeLeft = order.targetPickupTime - Date.now();
+      if (timeLeft <= 0) {
+        timeHtml = `<h4 style="color:#ff5252;">00:00</h4><p>Preparing final touches for pickup</p>`;
+      } else {
+        const mins = Math.floor(timeLeft / 60000);
+        const secs = Math.floor((timeLeft % 60000) / 1000);
+        const displaySecs = secs < 10 ? '0' + secs : secs;
+        const displayMins = mins < 10 ? '0' + mins : mins;
+        timeHtml = `<h4>${displayMins}:${displaySecs}</h4><p>Estimated pickup countdown</p>`;
+      }
+    } else if (isReady) {
+      timeHtml = `<h4 style="color:#4caf50;">Ready ✓</h4><p>Your order is hot and waiting at the counter!</p>`;
+    } else if (isCompleted) {
+      timeHtml = `<h4 style="color:var(--text-muted);">Completed</h4><p>Thank you for dining with Prime Sip Kitchen!</p>`;
+      clearInterval(trackerInterval);
+    }
+
+    trackerPanel.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:0.5rem;">
+        <h3 style="color:var(--primary-gold); font-family:var(--font-display);">Order #${order.id.split('-').pop()}</h3>
+        <span style="font-size:0.8rem; background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:12px;">${order.type.toUpperCase()}</span>
+      </div>
+
+      <!-- Stepper Progress -->
+      <div class="tracker-steps">
+        <div class="tracker-step ${isPending || isPreparing || isReady || isCompleted ? 'completed' : ''} ${isPending ? 'active' : ''}">
+          <div class="tracker-step-icon">📋</div>
+          <span>Received</span>
+        </div>
+        <div class="tracker-step ${isPreparing || isReady || isCompleted ? 'completed' : ''} ${isPreparing ? 'active' : ''}">
+          <div class="tracker-step-icon">🍳</div>
+          <span>Preparing</span>
+        </div>
+        <div class="tracker-step ${isReady || isCompleted ? 'completed' : ''} ${isReady ? 'active' : ''}">
+          <div class="tracker-step-icon">🥡</div>
+          <span>Ready</span>
+        </div>
+      </div>
+
+      <!-- Countdown Clock -->
+      <div class="tracker-clock">
+        ${timeHtml}
+      </div>
+
+      <div style="font-size:0.85rem; color:var(--text-muted); background:rgba(0,0,0,0.2); padding:1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.04);">
+        <p><strong>Customer:</strong> ${order.name}</p>
+        <p><strong>Phone:</strong> ${order.phone}</p>
+        <p><strong>Total Amount:</strong> ${NAIRA(order.total)}</p>
+      </div>
+
+      ${isCompleted ? `<button onclick="localStorage.removeItem('psk_active_order'); location.reload();" class="btn btn-primary" style="width:100%; margin-top:1.5rem;">Place a New Order</button>` : ''}
+    `;
+  }
+
+  updateTrackerUI();
+  clearInterval(trackerInterval);
+  trackerInterval = setInterval(updateTrackerUI, 1000);
+}
+
 /* ---------- Cart / checkout page ---------- */
 function initCartPage(){
   const root = document.querySelector("[data-cart-root]");
@@ -390,6 +569,13 @@ function initCartPage(){
 
   const empty = document.querySelector("[data-cart-empty]");
   const layout = document.querySelector("[data-cart-layout]");
+
+  // Check if there is an active order already placed in this browser
+  const activeOrderId = localStorage.getItem("psk_active_order");
+  if (activeOrderId) {
+    renderOrderTracker(activeOrderId);
+    return;
+  }
 
   function render(){
     const items = Cart.read();
@@ -485,23 +671,340 @@ function initCartPage(){
       const payBtn = document.querySelector("[data-pay-btn]");
       const name = document.querySelector("#cust-name")?.value.trim();
       const phone = document.querySelector("#cust-phone")?.value.trim();
+      const email = document.querySelector("#cust-email")?.value.trim();
+      const address = document.querySelector("#cust-address")?.value.trim() || "";
+      const type = document.querySelector('input[name="order-type"]:checked')?.value || "dine-in";
+      
       if(!name || !phone){ toast("Please fill in your name and phone number"); return; }
 
       payBtn.disabled = true;
       payBtn.textContent = "Processing…";
 
       setTimeout(()=>{
-        payBtn.textContent = "Order Confirmed ✓";
-        toast("Payment simulated — your order has been placed");
+        const items = Cart.read().map(i => {
+          const m = MENU.find(x => x.id === i.id);
+          return { id: i.id, name: m.name, qty: i.qty, price: m.price };
+        });
+        
+        const subtotal = Cart.subtotal();
+        const deliveryFee = type === "delivery" ? 2500 : 0;
+        
+        const orderId = 'PSK-' + Date.now();
+
+        const order = {
+          id: orderId,
+          name,
+          phone,
+          email,
+          address,
+          type,
+          items,
+          subtotal,
+          deliveryFee,
+          total: subtotal + deliveryFee,
+          status: 'pending',
+          createdAt: Date.now()
+        };
+
+        // Save order to simulated DB
+        Database.addOrder(order);
+
+        // Clear cart
         Cart.clear();
-        setTimeout(()=> render(), 600);
-      }, 1400);
+
+        // Save active order identifier for customer tracking
+        localStorage.setItem("psk_active_order", orderId);
+
+        toast("Order placed! Waiting for confirmation...");
+        
+        // Render the status tracking view
+        renderOrderTracker(orderId);
+      }, 1000);
     });
   }
 
   render();
 }
 
+/* ---------- Interactive Reservation Booking Submit ---------- */
+function initReservationForm() {
+  const rForm = document.getElementById("reservation-form");
+  if (!rForm) return;
+
+  rForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("res-name").value.trim();
+    const phone = document.getElementById("res-phone").value.trim();
+    const date = document.getElementById("res-date").value;
+    const time = document.getElementById("res-time").value;
+    const guests = document.getElementById("res-guests").value;
+    const notes = document.getElementById("res-notes").value.trim();
+
+    const booking = {
+      id: 'RES-' + Date.now(),
+      name,
+      phone,
+      date,
+      time,
+      guests,
+      notes,
+      createdAt: Date.now()
+    };
+
+    Database.addBooking(booking);
+    MediaEngine.playChime();
+    
+    alert(`Prestige Table booked! Reference: ${booking.id}. A confirmation SMS will be sent to ${phone}.`);
+    rForm.reset();
+  });
+}
+
+/* ---------- Owner Dashboard Logic ---------- */
+const DashboardEngine = {
+  lastCheckedOrderCount: 0,
+  intervalId: null,
+
+  init() {
+    const dRoot = document.getElementById('dashboard-root');
+    if (!dRoot) return;
+
+    this.lastCheckedOrderCount = Database.readOrders().length;
+    this.render();
+
+    // Poll for changes (or sync on local event)
+    window.addEventListener('psk_db_update', () => this.render());
+    
+    // Regular 1 second intervals for timers
+    this.intervalId = setInterval(() => this.updateTimers(), 1000);
+
+    // Audio Alert Checker: Checks for new orders and plays sound
+    setInterval(() => {
+      const currentOrders = Database.readOrders();
+      if (currentOrders.length > this.lastCheckedOrderCount) {
+        // Play service desk bell alarm
+        MediaEngine.playAlarm();
+        toast("New order received!");
+        this.lastCheckedOrderCount = currentOrders.length;
+        this.render();
+      }
+    }, 1500);
+  },
+
+  render() {
+    const orders = Database.readOrders();
+    const bookings = Database.readBookings();
+
+    const pendingList = document.getElementById('pending-orders-list');
+    const activeList = document.getElementById('active-orders-list');
+    const completedList = document.getElementById('completed-orders-list');
+    const bookingList = document.getElementById('bookings-list');
+
+    // Counts
+    const pendingCount = document.getElementById('count-pending');
+    const activeCount = document.getElementById('count-active');
+    const completedCount = document.getElementById('count-completed');
+    const bookingCount = document.getElementById('count-bookings');
+
+    const pendingOrders = orders.filter(o => o.status === 'pending');
+    const activeOrders = orders.filter(o => o.status === 'confirmed' || o.status === 'ready');
+    const completedOrders = orders.filter(o => o.status === 'completed');
+
+    if (pendingCount) pendingCount.textContent = pendingOrders.length;
+    if (activeCount) activeCount.textContent = activeOrders.length;
+    if (completedCount) completedCount.textContent = completedOrders.length;
+    if (bookingCount) bookingCount.textContent = bookings.length;
+
+    // Render Pending
+    if (pendingList) {
+      if (pendingOrders.length === 0) {
+        pendingList.innerHTML = `<p style="color:var(--text-muted); text-align:center;">No pending orders.</p>`;
+      } else {
+        pendingList.innerHTML = pendingOrders.map(o => `
+          <div class="dashboard-card" data-card-id="${o.id}">
+            <div class="dashboard-card-header">
+              <div class="dashboard-card-title">
+                <h4>Order #${o.id.split('-').pop()}</h4>
+                <span>Placed at ${new Date(o.createdAt).toLocaleTimeString()}</span>
+              </div>
+              <span class="dashboard-timer urgency-medium">Pending</span>
+            </div>
+            <div class="dashboard-card-body">
+              <p><strong>Customer:</strong> ${o.name} (${o.phone})</p>
+              <p><strong>Type:</strong> ${o.type.toUpperCase()}</p>
+              ${o.address ? `<p><strong>Address:</strong> ${o.address}</p>` : ''}
+              <ul class="dashboard-items-list">
+                ${o.items.map(it => `<li>${it.qty}x ${it.name}</li>`).join('')}
+              </ul>
+              <p><strong>Total:</strong> ${NAIRA(o.total)}</p>
+              
+              <div class="prep-select-container">
+                <label style="font-size:0.75rem; font-weight:700;">Prep Time:</label>
+                <select class="prep-select" id="prep-${o.id}">
+                  <option value="10">10 Minutes</option>
+                  <option value="15" selected>15 Minutes</option>
+                  <option value="20">20 Minutes</option>
+                  <option value="30">30 Minutes</option>
+                  <option value="45">45 Minutes</option>
+                </select>
+                <button class="dashboard-btn dashboard-btn-confirm" onclick="DashboardEngine.confirmOrder('${o.id}')">Confirm</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Render Active (Preparing / Ready)
+    if (activeList) {
+      if (activeOrders.length === 0) {
+        activeList.innerHTML = `<p style="color:var(--text-muted); text-align:center;">No active orders.</p>`;
+      } else {
+        activeList.innerHTML = activeOrders.map(o => {
+          const isReady = o.status === 'ready';
+          return `
+            <div class="dashboard-card" data-card-id="${o.id}">
+              <div class="dashboard-card-header">
+                <div class="dashboard-card-title">
+                  <h4>Order #${o.id.split('-').pop()}</h4>
+                  <span>Placed at ${new Date(o.createdAt).toLocaleTimeString()}</span>
+                </div>
+                <span class="dashboard-timer" id="timer-${o.id}" data-target="${o.targetPickupTime || 0}" data-status="${o.status}">
+                  ${isReady ? 'Ready' : '--:--'}
+                </span>
+              </div>
+              <div class="dashboard-card-body">
+                <p><strong>Customer:</strong> ${o.name} (${o.phone})</p>
+                <p><strong>Type:</strong> ${o.type.toUpperCase()}</p>
+                <ul class="dashboard-items-list">
+                  ${o.items.map(it => `<li>${it.qty}x ${it.name}</li>`).join('')}
+                </ul>
+                <p><strong>Total:</strong> ${NAIRA(o.total)}</p>
+                
+                <div class="dashboard-actions">
+                  ${!isReady ? `<button class="dashboard-btn dashboard-btn-ready" onclick="DashboardEngine.readyOrder('${o.id}')">Mark Ready</button>` : ''}
+                  <button class="dashboard-btn dashboard-btn-complete" onclick="DashboardEngine.completeOrder('${o.id}')">Handover & Complete</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // Render Completed
+    if (completedList) {
+      if (completedOrders.length === 0) {
+        completedList.innerHTML = `<p style="color:var(--text-muted); text-align:center;">No completed orders.</p>`;
+      } else {
+        completedList.innerHTML = completedOrders.slice(-5).reverse().map(o => `
+          <div class="dashboard-card" style="opacity: 0.6;">
+            <div class="dashboard-card-header">
+              <div class="dashboard-card-title">
+                <h4>Order #${o.id.split('-').pop()}</h4>
+                <span>Completed</span>
+              </div>
+              <span class="dashboard-timer urgency-low" style="border-color:transparent;">Done</span>
+            </div>
+            <div class="dashboard-card-body">
+              <p><strong>Customer:</strong> ${o.name}</p>
+              <p><strong>Total:</strong> ${NAIRA(o.total)}</p>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Render Bookings
+    if (bookingList) {
+      if (bookings.length === 0) {
+        bookingList.innerHTML = `<p style="color:var(--text-muted); text-align:center;">No bookings recorded.</p>`;
+      } else {
+        bookingList.innerHTML = bookings.map(b => `
+          <div class="dashboard-card">
+            <div class="dashboard-card-header">
+              <div class="dashboard-card-title">
+                <h4>Booking: ${b.name}</h4>
+                <span>Placed at ${new Date(b.createdAt).toLocaleTimeString()}</span>
+              </div>
+              <span class="dashboard-timer urgency-low">${b.guests} Guests</span>
+            </div>
+            <div class="dashboard-card-body">
+              <p><strong>Phone:</strong> ${b.phone}</p>
+              <p><strong>Date / Time:</strong> ${b.date} at ${b.time}</p>
+              ${b.notes ? `<p><strong>Note:</strong> <em>"${b.notes}"</em></p>` : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  },
+
+  confirmOrder(orderId) {
+    const select = document.getElementById(`prep-${orderId}`);
+    const minutes = parseInt(select?.value || 15);
+    Database.updateOrderStatus(orderId, 'confirmed', minutes);
+    toast(`Order confirmed! Prep time: ${minutes}m`);
+    this.render();
+  },
+
+  readyOrder(orderId) {
+    Database.updateOrderStatus(orderId, 'ready');
+    toast("Order is ready for pickup!");
+    this.render();
+  },
+
+  completeOrder(orderId) {
+    Database.updateOrderStatus(orderId, 'completed');
+    toast("Order completed!");
+    this.render();
+  },
+
+  updateTimers() {
+    document.querySelectorAll('[id^="timer-"]').forEach(el => {
+      const targetTime = parseInt(el.getAttribute('data-target') || 0);
+      const status = el.getAttribute('data-status');
+
+      if (status === 'ready') {
+        el.textContent = "Ready";
+        el.className = "dashboard-timer urgency-low";
+        return;
+      }
+
+      if (!targetTime) return;
+
+      const timeLeft = targetTime - Date.now();
+
+      // Reset classes
+      el.className = "dashboard-timer";
+
+      if (timeLeft <= 0) {
+        el.textContent = "Overdue";
+        el.classList.add("urgency-overdue");
+      } else {
+        const mins = Math.floor(timeLeft / 60000);
+        const secs = Math.floor((timeLeft % 60000) / 1000);
+        const displaySecs = secs < 10 ? '0' + secs : secs;
+        const displayMins = mins < 10 ? '0' + mins : mins;
+        
+        el.textContent = `${displayMins}:${displaySecs}`;
+
+        // Color coding by remaining time urgency
+        if (mins < 3) {
+          el.classList.add("urgency-high"); // Less than 3 mins left
+        } else if (mins < 10) {
+          el.classList.add("urgency-medium"); // Less than 10 mins left
+        } else {
+          el.classList.add("urgency-low"); // Safe
+        }
+      }
+    });
+  }
+};
+
+// Expose DashboardEngine globally so onclick bindings in dynamically rendered elements work
+window.DashboardEngine = DashboardEngine;
+
+/* ---------- Dom Loaded Init ---------- */
 document.addEventListener("DOMContentLoaded", ()=>{
   initAmbientControl();
   initNav();
@@ -509,5 +1012,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   initEmbers();
   initMenuPage();
   initCartPage();
+  initReservationForm();
+  DashboardEngine.init();
   Cart.updateBadge();
 });

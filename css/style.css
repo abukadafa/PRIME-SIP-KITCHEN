@@ -1075,3 +1075,318 @@ a {
     padding: 5rem 1rem;
   }
 }
+
+/* =========================================================
+   PWA ORDER TRACKING & OWNER DASHBOARD
+   ========================================================= */
+
+/* ---------- Customer Order Tracker ---------- */
+.order-tracker-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 2.5rem;
+  max-width: 600px;
+  margin: 2rem auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.tracker-steps {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+
+.tracker-steps::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  z-index: 1;
+}
+
+.tracker-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+  position: relative;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 33%;
+  text-align: center;
+}
+
+.tracker-step-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #161616;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  color: #666;
+  font-size: 0.95rem;
+  transition: var(--transition-smooth);
+}
+
+/* Tracker Step States */
+.tracker-step.active {
+  color: var(--primary-gold);
+}
+.tracker-step.active .tracker-step-icon {
+  background: #0d0d0d;
+  border-color: var(--primary-gold);
+  color: var(--primary-gold);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+}
+
+.tracker-step.completed {
+  color: #4caf50;
+}
+.tracker-step.completed .tracker-step-icon {
+  background: #4caf50;
+  border-color: #4caf50;
+  color: #ffffff;
+}
+
+.tracker-clock {
+  text-align: center;
+  padding: 1.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 2rem 0;
+}
+
+.tracker-clock h4 {
+  font-size: 3.5rem;
+  font-family: var(--font-body);
+  color: var(--primary-gold);
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin: 0.5rem 0;
+  line-height: 1;
+}
+
+.tracker-clock p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+/* ---------- Owner Dashboard Grid ---------- */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.dashboard-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.dashboard-panel h3 {
+  font-size: 1.6rem;
+  color: var(--primary-gold);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard-count-badge {
+  background: var(--primary-gold-dark);
+  color: #0d0d0d;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.1rem 0.6rem;
+  border-radius: 20px;
+}
+
+.dashboard-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  transition: var(--transition-smooth);
+}
+
+.dashboard-card:hover {
+  border-color: rgba(212, 175, 55, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.dashboard-card-title h4 {
+  font-size: 1.1rem;
+  color: var(--text-main);
+  margin-bottom: 0.2rem;
+}
+
+.dashboard-card-title span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dashboard-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 15px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Urgency Timers */
+.urgency-low {
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid #4caf50;
+  color: #4caf50;
+}
+.urgency-medium {
+  background: rgba(255, 179, 0, 0.12);
+  border: 1px solid #ffb300;
+  color: #ffb300;
+}
+.urgency-high {
+  background: rgba(255, 82, 82, 0.12);
+  border: 1px solid #ff5252;
+  color: #ff5252;
+}
+.urgency-overdue {
+  animation: flashRed 1s infinite alternate;
+  background: rgba(255, 82, 82, 0.25);
+  border: 1px solid #ff5252;
+  color: #ffffff;
+}
+
+@keyframes flashRed {
+  0% { box-shadow: 0 0 5px rgba(255, 82, 82, 0.4); border-color: #ff5252; }
+  100% { box-shadow: 0 0 15px rgba(255, 82, 82, 0.8); border-color: #ffffff; }
+}
+
+.dashboard-card-body {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.dashboard-items-list {
+  list-style: none;
+  margin: 0.5rem 0 1rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--primary-gold-dark);
+}
+
+.dashboard-items-list li {
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.dashboard-btn {
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: var(--transition-smooth);
+}
+
+.dashboard-btn-confirm {
+  background: transparent;
+  border: 1px solid var(--primary-gold);
+  color: var(--primary-gold);
+}
+.dashboard-btn-confirm:hover {
+  background: var(--primary-gold);
+  color: #0d0d0d;
+}
+
+.dashboard-btn-ready {
+  background: #2e7d32;
+  border: 1px solid #2e7d32;
+  color: #ffffff;
+}
+.dashboard-btn-ready:hover {
+  background: #388e3c;
+  border-color: #388e3c;
+}
+
+.dashboard-btn-complete {
+  background: transparent;
+  border: 1px solid var(--text-muted);
+  color: var(--text-muted);
+}
+.dashboard-btn-complete:hover {
+  background: var(--text-muted);
+  color: #0d0d0d;
+}
+
+/* Time Set Select Wrapper */
+.prep-select-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.prep-select {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  outline: none;
+}
+
+.prep-select:focus {
+  border-color: var(--primary-gold);
+}
+
+@media (max-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
