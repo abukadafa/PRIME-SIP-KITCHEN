@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Order — Prime Sip Kitchen</title>
+  <meta name="description" content="Review your cart, select dine-in or delivery, and complete your order with our simulated secure payment gateway.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Sticky Header -->
+  <header class="site-header scrolled">
+    <div class="header-container">
+      <a href="index.html" class="logo">
+        PRIME SIP <span>KITCHEN</span>
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">☰</button>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="menu.html">Menu</a>
+        <a href="about.html">Our Story</a>
+        <a href="contact.html">Reservations</a>
+        <a href="cart.html" class="cart-icon-container active">
+          Order Online 🛒
+          <span class="cart-badge" data-cart-count style="display: none;">0</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Cart / Checkout Main View -->
+  <main class="section" style="margin-top: 5rem;">
+    <div class="section-header">
+      <h2>Your Table Order</h2>
+      <p>Review selected delicacies and customize your dining details below.</p>
+    </div>
+
+    <!-- Empty Cart Screen -->
+    <div data-cart-empty style="text-align: center; padding: 4rem 1rem; display: none;">
+      <div style="font-size: 4rem; margin-bottom: 1.5rem;">🛒</div>
+      <h3 style="font-size: 1.8rem; margin-bottom: 1rem;">Your order is empty</h3>
+      <p style="color: var(--text-muted); margin-bottom: 2rem;">Head back to our catalog to select your signature combos or local soups.</p>
+      <a href="menu.html" class="btn btn-primary">Go to Menu</a>
+    </div>
+
+    <!-- Cart Layout (Grid) -->
+    <div data-cart-layout class="cart-layout" style="display: none;">
+      
+      <!-- Left Pane: Cart Lines -->
+      <section class="cart-items-panel">
+        <h3 style="font-size: 1.6rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem;">Selected Items</h3>
+        <div data-cart-root>
+          <!-- Lines rendered dynamically by js/app.js -->
+        </div>
+      </section>
+
+      <!-- Right Pane: Checkout Form -->
+      <section class="checkout-panel">
+        <h3>Order Checkout</h3>
+        
+        <form data-checkout-form>
+          <!-- Order Type Selector -->
+          <div class="form-group">
+            <label>Dining Type</label>
+            <div class="order-types">
+              <label class="order-type selected">
+                <input type="radio" name="order-type" value="dine-in" checked>
+                <span>Dine-In</span>
+              </label>
+              <label class="order-type">
+                <input type="radio" name="order-type" value="delivery">
+                <span>Delivery</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Customer Info -->
+          <div class="form-group">
+            <label for="cust-name">Full Name</label>
+            <input type="text" id="cust-name" class="form-control" placeholder="e.g., Abubakar Kadafa" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-phone">Phone Number</label>
+            <input type="tel" id="cust-phone" class="form-control" placeholder="e.g., +234 803 123 4567" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-email">Email Address</label>
+            <input type="email" id="cust-email" class="form-control" placeholder="e.g., user@example.com" required>
+          </div>
+
+          <!-- Conditional Delivery Address -->
+          <div class="form-group data-delivery-field hidden-field" data-delivery-field>
+            <label for="cust-address">Delivery Address</label>
+            <textarea id="cust-address" class="form-control" rows="2" placeholder="Street name, estate, apartment/flat number"></textarea>
+          </div>
+
+          <!-- Payment Mode -->
+          <div class="form-group">
+            <label>Payment Method</label>
+            <div class="pay-methods">
+              <label class="pay-method selected">
+                <input type="radio" name="pay-method" value="paystack" checked>
+                <span>Paystack (Card/Bank)</span>
+              </label>
+              <label class="pay-method">
+                <input type="radio" name="pay-method" value="cash">
+                <span>Pay on Arrival</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Price Summary Breakdown -->
+          <div style="margin: 2rem 0 1.5rem; background: rgba(0, 0, 0, 0.2); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+            <div class="summary-line">
+              <span style="color: var(--text-muted);">Subtotal</span>
+              <span data-subtotal>₦0</span>
+            </div>
+            <div class="summary-line">
+              <span style="color: var(--text-muted);">Delivery Fee</span>
+              <span data-delivery-fee>—</span>
+            </div>
+            <div class="summary-line total">
+              <span>Total</span>
+              <span data-total>₦0</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;" data-pay-btn>Pay & Place Order</button>
+        </form>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-logo">
+      PRIME SIP <span>KITCHEN</span>
+    </div>
+    <ul class="footer-nav">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <div class="footer-copy">
+      &copy; 2026 Prime Sip Kitchen. Built with passion and prestige. All rights reserved.
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

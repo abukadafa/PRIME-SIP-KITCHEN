@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Menu — Prime Sip Kitchen</title>
+  <meta name="description" content="Discover our menu. High-end modern Nigerian combos, traditional swallows, warming pepper soups, and curated premium drinks.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Sticky Header -->
+  <header class="site-header scrolled">
+    <div class="header-container">
+      <a href="index.html" class="logo">
+        PRIME SIP <span>KITCHEN</span>
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">☰</button>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="menu.html" class="active">Menu</a>
+        <a href="about.html">Our Story</a>
+        <a href="contact.html">Reservations</a>
+        <a href="cart.html" class="cart-icon-container">
+          Order Online 🛒
+          <span class="cart-badge" data-cart-count style="display: none;">0</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Menu Content Section -->
+  <main class="section" style="margin-top: 5rem;" data-menu-root>
+    <div class="section-header">
+      <h2>The Culinary Catalog</h2>
+      <p>Select a category below to explore our creations. Every dish is seasoned with native herbs and prepared to order.</p>
+    </div>
+
+    <!-- Category Filter Chips -->
+    <div class="filter-container">
+      <button class="filter-chip active" data-filter="all">All Items</button>
+      <button class="filter-chip" data-filter="combos">Combos & Platters</button>
+      <button class="filter-chip" data-filter="swallows">Swallows & Soups</button>
+      <button class="filter-chip" data-filter="pepper">Pepper Soups</button>
+      <button class="filter-chip" data-filter="sips">Sips & Desserts</button>
+    </div>
+
+    <!-- Category Sections -->
+    <!-- 1. Combos & Platters -->
+    <section class="menu-cat reveal in" data-cat="combos">
+      <div class="menu-cat-header">
+        <h3>Prime Combos & Platters</h3>
+        <p>Built for sharing — our most requested table selections.</p>
+      </div>
+      <div class="menu-items menu-grid">
+        <!-- Rendered dynamically by js/app.js -->
+      </div>
+    </section>
+
+    <!-- 2. Swallows & Local Soups -->
+    <section class="menu-cat reveal in" data-cat="swallows">
+      <div class="menu-cat-header">
+        <h3>Swallows & Local Soups</h3>
+        <p>Pick a swallow base and pair it with any of our rich local soup pots.</p>
+      </div>
+      <div class="menu-items menu-grid">
+        <!-- Rendered dynamically by js/app.js -->
+      </div>
+    </section>
+
+    <!-- 3. Continental & Pepper Soups -->
+    <section class="menu-cat reveal in" data-cat="pepper">
+      <div class="menu-cat-header">
+        <h3>Continental & Pepper Soups</h3>
+        <p>Warming, spiced bowls featuring indigenous botanical blends.</p>
+      </div>
+      <div class="menu-items menu-grid">
+        <!-- Rendered dynamically by js/app.js -->
+      </div>
+    </section>
+
+    <!-- 4. Premium Sips & Desserts -->
+    <section class="menu-cat reveal in" data-cat="sips">
+      <div class="menu-cat-header">
+        <h3>Premium Sips & Desserts</h3>
+        <p>Curated mocktails, craft beverages, and something sweet to close the meal.</p>
+      </div>
+      <div class="menu-items menu-grid">
+        <!-- Rendered dynamically by js/app.js -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-logo">
+      PRIME SIP <span>KITCHEN</span>
+    </div>
+    <ul class="footer-nav">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <div class="footer-copy">
+      &copy; 2026 Prime Sip Kitchen. Built with passion and prestige. All rights reserved.
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
