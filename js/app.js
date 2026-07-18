@@ -1020,6 +1020,34 @@ const DashboardEngine = {
 
 window.DashboardEngine = DashboardEngine;
 
+/* ---------- QR Modal Event Listeners ---------- */
+function initQRModal() {
+  const modal = document.getElementById('qr-menu-modal');
+  const triggers = document.querySelectorAll('.qr-menu-trigger');
+  const closeBtn = document.getElementById('qr-menu-close');
+
+  if (!modal) return;
+
+  triggers.forEach(trigger => {
+    trigger.addEventListener('click', (e) => {
+      e.preventDefault();
+      modal.classList.add('show');
+    });
+  });
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      modal.classList.remove('show');
+    });
+  }
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('show');
+    }
+  });
+}
+
 /* ---------- Dom Loaded Init ---------- */
 document.addEventListener("DOMContentLoaded", ()=>{
   initAmbientControl();
@@ -1029,6 +1057,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   initMenuPage();
   initCartPage();
   initReservationForm();
+  initQRModal();
   DashboardEngine.init();
   Cart.updateBadge();
 });
