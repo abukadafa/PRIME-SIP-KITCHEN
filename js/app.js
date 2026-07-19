@@ -1025,8 +1025,16 @@ function initQRModal() {
   const modal = document.getElementById('qr-menu-modal');
   const triggers = document.querySelectorAll('.qr-menu-trigger');
   const closeBtn = document.getElementById('qr-menu-close');
+  const qrImg = document.getElementById('qr-code-image-el');
 
   if (!modal) return;
+
+  // Dynamically configure the QR code to point to the active deployment domain
+  if (qrImg) {
+    const currentBase = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+    const menuUrl = currentBase + '/menu.html';
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(menuUrl)}&color=0d0d0d`;
+  }
 
   triggers.forEach(trigger => {
     trigger.addEventListener('click', (e) => {
